@@ -65,13 +65,39 @@ const CustomCursor = () => {
 export default function App() {
   // Synchronous State Initialization (Runs once on load)
   const [appState, setAppState] = useState<AppState>(() => {
-      // 1. Try to load user
-      const storedUserJSON = localStorage.getItem('frost_current_user');
-      const storedUser = storedUserJSON ? JSON.parse(storedUserJSON) : null;
+      let storedUser = null;
+      let storedSettings = DEFAULT_SETTINGS;
+
+      // 1. Safe Load User
+      try {
+        const storedUserJSON = localStorage.getItem('frost_current_user');
+        if (storedUserJSON) {
+            storedUser = JSON.parse(storedUserJSON);
+        }
+      } catch (e) {
+        console.error("Failed to parse stored user", e);
+        localStorage.removeItem('frost_current_user');
+      }
       
-      // 2. Try to load settings
-      const storedSettingsJSON = localStorage.getItem('frost_settings');
-      const storedSettings = storedSettingsJSON ? JSON.parse(storedSettingsJSON) : DEFAULT_SETTINGS;
+      // 2. Safe Load Settings
+      try {
+        const storedSettingsJSON = localStorage.getItem('frost_settings');
+        if (storedSettingsJSON) {
+            const parsed = JSON.parse(storedSettingsJSON);
+            // Merge with defaults to ensure all fields (like customColors) exist
+            storedSettings = {
+                ...DEFAULT_SETTINGS,
+                ...parsed,
+                customColors: {
+                    ...DEFAULT_SETTINGS.customColors,
+                    ...(parsed.customColors || {})
+                }
+            };
+        }
+      } catch (e) {
+        console.error("Failed to parse stored settings", e);
+        localStorage.removeItem('frost_settings');
+      }
 
       // 3. Return initial state
       return {
@@ -194,9 +220,10 @@ export default function App() {
   } : undefined;
 
   // Custom Styles Construction
+  // Safe access to customColors using optional chaining just in case
   const appStyle = appState.settings.theme === 'custom' ? {
-      backgroundColor: appState.settings.customColors.background,
-      color: appState.settings.customColors.text,
+      backgroundColor: appState.settings.customColors?.background || '#0A0A0F',
+      color: appState.settings.customColors?.text || '#ffffff',
   } : (appState.settings.theme === 'light' ? {
       backgroundColor: '#f3f4f6',
       color: '#111827'

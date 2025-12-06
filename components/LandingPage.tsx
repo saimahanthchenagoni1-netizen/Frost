@@ -23,13 +23,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
   };
 
   const getStoredUsers = () => {
-    const stored = localStorage.getItem('frost_users');
-    const parsedStored = stored ? JSON.parse(stored) : [];
-    
-    // Merge stored users with MOCK_USERS for fallback login (Default password for mocks: 'password')
-    const mockUsersWithPass = Object.values(MOCK_USERS).map(u => ({ ...u, password: 'password' }));
-    
-    return [...parsedStored, ...mockUsersWithPass];
+    try {
+        const stored = localStorage.getItem('frost_users');
+        const parsedStored = stored ? JSON.parse(stored) : [];
+        if (!Array.isArray(parsedStored)) return [];
+        
+        // Merge stored users with MOCK_USERS for fallback login (Default password for mocks: 'password')
+        const mockUsersWithPass = Object.values(MOCK_USERS).map(u => ({ ...u, password: 'password' }));
+        
+        return [...parsedStored, ...mockUsersWithPass];
+    } catch (e) {
+        console.error("Error reading stored users:", e);
+        // Fallback to just mocks if local storage is corrupt
+        return Object.values(MOCK_USERS).map(u => ({ ...u, password: 'password' }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,10 +86,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             };
 
             // Save to Persistent Storage only (don't save mocks back to storage)
-            const currentStored = localStorage.getItem('frost_users');
-            const parsedCurrent = currentStored ? JSON.parse(currentStored) : [];
-            const updatedUsers = [...parsedCurrent, newUser];
-            localStorage.setItem('frost_users', JSON.stringify(updatedUsers));
+            try {
+                const currentStored = localStorage.getItem('frost_users');
+                const parsedCurrent = currentStored ? JSON.parse(currentStored) : [];
+                const updatedUsers = Array.isArray(parsedCurrent) ? [...parsedCurrent, newUser] : [newUser];
+                localStorage.setItem('frost_users', JSON.stringify(updatedUsers));
+            } catch (e) {
+                console.error("Failed to save user", e);
+            }
             
             setIsLoading(false);
             onLogin(newUser); // Log in immediately
