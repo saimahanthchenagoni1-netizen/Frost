@@ -1,0 +1,7 @@
+{
+  "name": "Frost",
+  "description": "Talk Fast. Stay Connected. Look Epic. A liquid glass UI chat platform.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
